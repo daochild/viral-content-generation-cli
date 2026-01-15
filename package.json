@@ -1,0 +1,37 @@
+{
+  "name": "viral-video-generator",
+  "version": "0.1.0",
+  "module": "src/index.ts",
+  "type": "module",
+  "author": "daochild",
+  "license": "LGPL-3.0-or-later",
+  "private": true,
+  "packageManager": "bun@1.3.0",
+  "os": ["win32"],
+  "scripts": {
+    "build": "bun build ./src/index.ts --target=bun --bytecode --minify --outdir=./dist",
+    "dev": "bun --console-depth 5 --watch ./src/index.ts",
+    "start": "bun ./dist/index.js",
+    "test": "bun test",
+    "build:linux": "bun build --compile --bytecode --minify --sourcemap ./cli.ts --target=bun-linux-x64 --outfile=./release/viral-linux",
+    "build:macos": "bun build --compile --bytecode --minify --sourcemap ./cli.ts --target=bun-darwin-arm64 --outfile=./release/viral-macos",
+    "build:windows": "bun build --compile --bytecode --minify --sourcemap ./cli.ts --target=bun-windows-x64 --outfile=./release/viral",
+    "build:all": "bun run build:linux && bun run build:macos && bun run build:windows",
+    "photo": "bun run cli.ts --photo --prompt \"cozy coffee shop aesthetic\" -n 3 --model gemini-2.5-flash"
+  },
+  "workspaces": {
+    "packages": ["apps/*"],
+    "catalog": {},
+    "catalogs": {}
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@google/genai": "^1.34.0",
+    "openai": "^6.15.0"
+  }
+}
