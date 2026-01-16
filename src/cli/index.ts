@@ -7,6 +7,7 @@ import type { LLMClient } from "../llm/types";
 import { generatePrompts } from "../generator/prompts";
 import { FileJsonStore, makeRunId } from "../database/jsonStore";
 import { GeminiImageClient } from "../media/geminiImage";
+import { OllamaImageClient } from "../media/ollamaImage";
 import { KlingAIClient } from "../media/klingai";
 import type { RunRecord } from "../domain/types";
 
@@ -39,6 +40,8 @@ Environment variables:
   GEMINI_API_KEY       API key for Gemini (prompts and images)
   OPENAI_API_KEY       API key for OpenAI (prompts only)
   OLLAMA_BASE_URL      Base URL for Ollama server (default: http://localhost:11434)
+  STABILITY_API_KEY    API key for Stability AI (required for Ollama image generation)
+  STABILITY_API_URL    Stability AI endpoint or local SD server (optional)
   NANO_BANANA_MODEL    Model for image generation (default: gemini-2.5-flash-image)
   KLINGAI_API_KEY      API key for KlingAI (video generation)
   KLINGAI_API_SECRET   API secret for KlingAI
@@ -188,32 +191,59 @@ export async function runCli(argv: string[]) {
       const outputBaseDir = join(OUTPUT_DIR, runId);
 
       if (isPhoto) {
-        const geminiApiKey = process.env.GEMINI_API_KEY;
-        if (!geminiApiKey) {
-          throw new Error("GEMINI_API_KEY environment variable is required for image generation");
-        }
+        if (provider === "ollama") {
+          // Use Stability AI for image generation (Ollama handles prompts only)
+          const imageClient = new OllamaImageClient({});
 
-        const imageModel = process.env.NANO_BANANA_MODEL ?? "gemini-2.5-flash-image";
-        const imageClient = new GeminiImageClient({ apiKey: geminiApiKey });
+          console.error(`[viral] Generating ${result.prompts.length} image(s) using Stability AI...`);
+          console.error(`[viral] Note: Set STABILITY_API_KEY for image generation with Ollama prompts`);
 
-        console.error(`[viral] Generating ${result.prompts.length} image(s) using ${imageModel}...`);
+          for (let i = 0; i < result.prompts.length; i++) {
+            const imagePrompt = result.prompts[i]!;
+            const outputPath = join(outputBaseDir, `image-${i + 1}.png`);
+            
+            console.error(`[viral] Generating image ${i + 1}/${result.prompts.length}...`);
+            
+            try {
+              const imageResult = await imageClient.generate({
+                prompt: imagePrompt,
+                outputPath,
+              });
+              generatedMedia.push(imageResult.imagePath);
+              console.error(`[viral] Image saved: ${imageResult.imagePath}`);
+            } catch (err: any) {
+              console.error(`[viral] Failed to generate image ${i + 1}: ${err?.message ?? err}`);
+            }
+          }
+        } else {
+          // Use Gemini for image generation (default)
+          const geminiApiKey = process.env.GEMINI_API_KEY;
+          if (!geminiApiKey) {
+            throw new Error("GEMINI_API_KEY environment variable is required for image generation");
+          }
 
-        for (let i = 0; i < result.prompts.length; i++) {
-          const imagePrompt = result.prompts[i]!;
-          const outputPath = join(outputBaseDir, `image-${i + 1}.png`);
-          
-          console.error(`[viral] Generating image ${i + 1}/${result.prompts.length}...`);
-          
-          try {
-            const imageResult = await imageClient.generate({
-              prompt: imagePrompt,
-              model: imageModel,
-              outputPath,
-            });
-            generatedMedia.push(imageResult.imagePath);
-            console.error(`[viral] Image saved: ${imageResult.imagePath}`);
-          } catch (err: any) {
-            console.error(`[viral] Failed to generate image ${i + 1}: ${err?.message ?? err}`);
+          const imageModel = process.env.NANO_BANANA_MODEL ?? "gemini-2.5-flash-image";
+          const imageClient = new GeminiImageClient({ apiKey: geminiApiKey });
+
+          console.error(`[viral] Generating ${result.prompts.length} image(s) using ${imageModel}...`);
+
+          for (let i = 0; i < result.prompts.length; i++) {
+            const imagePrompt = result.prompts[i]!;
+            const outputPath = join(outputBaseDir, `image-${i + 1}.png`);
+            
+            console.error(`[viral] Generating image ${i + 1}/${result.prompts.length}...`);
+            
+            try {
+              const imageResult = await imageClient.generate({
+                prompt: imagePrompt,
+                model: imageModel,
+                outputPath,
+              });
+              generatedMedia.push(imageResult.imagePath);
+              console.error(`[viral] Image saved: ${imageResult.imagePath}`);
+            } catch (err: any) {
+              console.error(`[viral] Failed to generate image ${i + 1}: ${err?.message ?? err}`);
+            }
           }
         }
       } else if (isVideo) {
