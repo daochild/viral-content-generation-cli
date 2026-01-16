@@ -2,6 +2,7 @@ import { parseArgs } from "util";
 import { join } from "node:path";
 import { GeminiClient } from "../llm/gemini";
 import { OpenAIClient } from "../llm/openai";
+import { OllamaClient } from "../llm/ollama";
 import type { LLMClient } from "../llm/types";
 import { generatePrompts } from "../generator/prompts";
 import { FileJsonStore, makeRunId } from "../database/jsonStore";
@@ -28,7 +29,7 @@ Options:
   --gen             Also generate actual media (images via Gemini, videos via KlingAI)
   --prompt, -p      Base topic/idea for generation
   -n                Number of prompts to generate (default: 5)
-  --provider        LLM provider: gemini or openai (default: gemini)
+  --provider        LLM provider: gemini, openai, or ollama (default: gemini)
   --model           Model name for prompts (default: gemini-2.5-flash)
   --outDir          Output directory for run logs (default: ./runs)
   --help, -h        Show this help message
@@ -37,6 +38,7 @@ Options:
 Environment variables:
   GEMINI_API_KEY       API key for Gemini (prompts and images)
   OPENAI_API_KEY       API key for OpenAI (prompts only)
+  OLLAMA_BASE_URL      Base URL for Ollama server (default: http://localhost:11434)
   NANO_BANANA_MODEL    Model for image generation (default: gemini-2.5-flash-image)
   KLINGAI_API_KEY      API key for KlingAI (video generation)
   KLINGAI_API_SECRET   API secret for KlingAI
@@ -48,6 +50,7 @@ Examples:
   viral --video --prompt "productivity tips" -n 5 --provider openai
   viral --photo --prompt "sunset beach" -n 3 --gen
   viral --video --prompt "cooking tutorial" -n 2 --gen
+  viral --photo --prompt "nature scene" -n 5 --provider ollama --model llama3.2
 `);
 }
 
@@ -59,6 +62,11 @@ function createLLMClient(provider: string): LLMClient {
     }
     return new OpenAIClient({ apiKey });
   }
+
+  if (provider === "ollama") {
+    const baseUrl = process.env.OLLAMA_BASE_URL;
+    return new OllamaClient({ baseUrl });
+  }
   
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -68,7 +76,9 @@ function createLLMClient(provider: string): LLMClient {
 }
 
 function getDefaultModel(provider: string): string {
-  return provider === "openai" ? "gpt-4o-mini" : "gemini-2.5-flash";
+  if (provider === "openai") return "gpt-4o-mini";
+  if (provider === "ollama") return "llama3.2";
+  return "gemini-2.5-flash";
 }
 
 export async function runCli(argv: string[]) {
@@ -131,8 +141,8 @@ export async function runCli(argv: string[]) {
   }
 
   const provider = values.provider ?? "gemini";
-  if (provider !== "gemini" && provider !== "openai") {
-    console.error("Error: --provider must be 'gemini' or 'openai'");
+  if (provider !== "gemini" && provider !== "openai" && provider !== "ollama") {
+    console.error("Error: --provider must be 'gemini', 'openai', or 'ollama'");
     process.exitCode = 2;
     return;
   }

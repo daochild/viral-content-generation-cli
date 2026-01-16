@@ -25,6 +25,13 @@ viral --photo --prompt "cozy coffee shop aesthetic" -n 5
 viral --video --prompt "productivity tips for developers" -n 3
 ```
 
+### Use Ollama for local LLM inference
+
+```bash
+# Make sure Ollama is running locally
+viral --photo --prompt "nature landscapes" -n 5 --provider ollama --model llama3.2
+```
+
 ### Generate prompts AND media files
 
 ```bash
@@ -44,7 +51,7 @@ viral --video --prompt "cooking tutorial" -n 2 --gen
 | `--gen` | Also generate actual media (images via Gemini, videos via KlingAI) |
 | `--prompt`, `-p` | Base topic/idea for generation |
 | `-n` | Number of prompts to generate (default: 5) |
-| `--provider` | LLM provider: `gemini` or `openai` (default: gemini) |
+| `--provider` | LLM provider: `gemini`, `openai`, or `ollama` (default: gemini) |
 | `--model` | Model name for prompts (default: gemini-2.5-flash) |
 | `--outDir` | Output directory for run logs (default: ./runs) |
 | `--help`, `-h` | Show help |
@@ -56,6 +63,7 @@ viral --video --prompt "cooking tutorial" -n 2 --gen
 |----------|-------------|
 | `GEMINI_API_KEY` | API key for Google Gemini (prompts and images) |
 | `OPENAI_API_KEY` | API key for OpenAI (prompts only) |
+| `OLLAMA_BASE_URL` | Base URL for Ollama server (default: http://localhost:11434) |
 | `NANO_BANANA_MODEL` | Model for image generation (default: gemini-2.5-flash-image) |
 | `KLINGAI_API_KEY` | API key for KlingAI (video generation) |
 | `KLINGAI_API_SECRET` | API secret for KlingAI |
