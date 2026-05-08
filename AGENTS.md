@@ -12,6 +12,7 @@ Welcome! If you are an AI coding assistant working in this repository, follow th
 ## ⚙️ Workflows & Commands
 - **Run Locally**: `bun run cli.ts --photo --prompt "topic" -n 5`
 - **Run with Generation**: Add `--gen` to also generate images/videos.
+- **Video Capabilities**: The Gemini client natively supports Video generation with Veo 3.1, including advanced features (interpolation, extension, reference images). Check `src/llm/types.ts` and `src/llm/gemini.ts` for interfaces and polling usage.
 - **Test**: `bun test` runs E2E tests covering real API calls if `.env` keys exist.
 - **Build**: `bun run build:all`
 
@@ -29,4 +30,3 @@ If you are adding a new LLM or Media client:
 3. Handle potential LLM output unreliability (extract JSON from markdown like `\```json...` if present).
 
 Please adhere to these guidelines during code changes.
-

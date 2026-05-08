@@ -48,7 +48,7 @@ viral --video --prompt "cooking tutorial" -n 2 --gen
 |--------|-------------|
 | `--photo` | Generate photo prompts |
 | `--video` | Generate video prompts with TikTok uniqueness rules |
-| `--gen` | Also generate actual media (images via Ollama/Gemini, videos via KlingAI) |
+| `--gen` | Also generate actual media (images via Ollama/Gemini, videos via KlingAI or Gemini Veo) |
 | `--prompt`, `-p` | Base topic/idea for generation |
 | `-n` | Number of prompts to generate (default: 5) |
 | `--provider` | LLM provider: `gemini`, `openai`, or `ollama` (default: gemini) |
@@ -61,7 +61,7 @@ viral --video --prompt "cooking tutorial" -n 2 --gen
 
 | Variable | Description |
 |----------|-------------|
-| `GEMINI_API_KEY` | API key for Google Gemini (prompts and images) |
+| `GEMINI_API_KEY` | API key for Google Gemini (prompts, images, and Veo video) |
 | `OPENAI_API_KEY` | API key for OpenAI (prompts only) |
 | `OLLAMA_BASE_URL` | Base URL for Ollama server (default: http://localhost:11434) |
 | `STABILITY_API_KEY` | API key for Stability AI (required for Ollama + image generation) |
