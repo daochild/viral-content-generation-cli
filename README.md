@@ -1,7 +1,8 @@
 # viral-video-generator
 
-CLI tool for generating unique photo and video prompts using LLM (Gemini/OpenAI).
+CLI tool for generating unique photo, video, and speech prompts using LLM (Gemini/OpenAI).
 With `--gen` flag, also generates actual media files (images via Gemini, videos via KlingAI).
+With `--tts` flag, generates speech audio files via Gemini TTS.
 
 Video prompts follow TikTok uniqueness rules to pass content fingerprinting.
 
@@ -42,17 +43,26 @@ viral --photo --prompt "sunset beach" -n 3 --gen
 viral --video --prompt "cooking tutorial" -n 2 --gen
 ```
 
+### Generate text-to-speech audio (Gemini only)
+
+```bash
+viral --tts --prompt "Welcome to our channel! Today we explore productivity." -n 1
+viral --tts --prompt "Top 5 tips to stay focused." -n 3 --voice Puck
+```
+
 ### Options
 
 | Option | Description |
 |--------|-------------|
 | `--photo` | Generate photo prompts |
 | `--video` | Generate video prompts with TikTok uniqueness rules |
+| `--tts` | Generate text-to-speech audio files (Gemini only) |
 | `--gen` | Also generate actual media (images via Ollama/Gemini, videos via KlingAI or Gemini Veo) |
-| `--prompt`, `-p` | Base topic/idea for generation |
-| `-n` | Number of prompts to generate (default: 5) |
+| `--prompt`, `-p` | Base topic/idea for generation (or exact text for `--tts`) |
+| `-n` | Number of prompts / audio files to generate (default: 5) |
 | `--provider` | LLM provider: `gemini`, `openai`, or `ollama` (default: gemini) |
 | `--model` | Model name for prompts (default: gemini-2.5-flash) |
+| `--voice` | Voice for TTS: `Aoede`, `Charon`, `Fenrir`, `Kore`, `Leda`, `Orus`, `Puck`, `Zephyr` (default: Kore) |
 | `--outDir` | Output directory for run logs (default: ./runs) |
 | `--help`, `-h` | Show help |
 | `--version`, `-v` | Show version |
@@ -61,22 +71,26 @@ viral --video --prompt "cooking tutorial" -n 2 --gen
 
 | Variable | Description |
 |----------|-------------|
-| `GEMINI_API_KEY` | API key for Google Gemini (prompts, images, and Veo video) |
+| `GEMINI_API_KEY` | API key for Google Gemini (prompts, images, TTS, and Veo video) |
+| `GEMINI_API_SECRET` | API secret for Google Gemini (if required) |
+| `GEMINI_MODEL` | Model for LLM prompt generation (default: `gemini-3.1-pro-preview`) |
 | `OPENAI_API_KEY` | API key for OpenAI (prompts only) |
 | `OLLAMA_BASE_URL` | Base URL for Ollama server (default: http://localhost:11434) |
 | `STABILITY_API_KEY` | API key for Stability AI (required for Ollama + image generation) |
 | `STABILITY_API_URL` | Stability AI endpoint or local SD server (optional) |
-| `NANO_BANANA_MODEL` | Model for image generation (default: gemini-2.5-flash-image) |
+| `NANO_BANANA_MODEL` | Model for image generation (default: `gemini-3.1-flash-image-preview`) |
+| `VEO_MODEL` | Model for Gemini Veo video generation (default: `veo-3.1-generate-preview`) |
+| `GEMINI_TTS_MODEL` | Model for TTS audio generation (default: `gemini-3.1-flash-tts-preview`) |
 | `KLINGAI_API_KEY` | API key for KlingAI (video generation) |
 | `KLINGAI_API_SECRET` | API secret for KlingAI |
-| `KLINGAI_MODEL` | Model for video: kling-v1-6, kling-v2-master, etc. (default: kling-v1-6) |
-| `KLINGAI_MODE` | Mode: std or pro (default: std) |
+| `KLINGAI_VIDEO_MODEL` | Model for KlingAI video (default: `kling-video-o1`) |
 
 ## Output
 
 - **Prompts only**: JSON array of prompts to stdout
 - **With --gen**: JSON with `prompts` and `media` arrays
-- **Run logs**: Saved to `./runs/` directory with format `run-{timestamp}-{photo|video}.json`
+- **With --tts**: WAV files (PCM 16-bit, 24 kHz, mono) saved to `./output/<runId>/speech-N.wav`
+- **Run logs**: Saved to `./runs/` directory with format `run-{timestamp}-{photo|video|tts}.json`
 - **Media files**: Saved to `./output/run-{timestamp}-{type}/` directory
 
 ## Run (dev)
