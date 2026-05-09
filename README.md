@@ -112,3 +112,16 @@ bun run build:all
 ```
 
 ## Documentation
+
+- Core docs live in `docs/gemini/`
+- UX/UI dashboard page: `ui/index.html`
+
+### Run the UI page locally
+
+```bash
+cd /home/daochild/dev/viral-content-generation-cli/ui
+python3 -m http.server 8080
+```
+
+Open `http://localhost:8080/index.html`.
+

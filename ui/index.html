@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Viral Content Generator - UX Dashboard</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121a33;
+      --panel-2: #182345;
+      --text: #eaf0ff;
+      --muted: #a8b4d9;
+      --brand: #7c9cff;
+      --brand-2: #63e6be;
+      --danger: #ff8787;
+      --border: #2a3766;
+      --shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: radial-gradient(1200px 700px at 20% -10%, #1c2a5d, transparent 40%), var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .container {
+      width: min(1100px, 92vw);
+      margin: 0 auto;
+      padding: 32px 0 64px;
+    }
+
+    .hero {
+      display: grid;
+      gap: 16px;
+      padding: 32px;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(124, 156, 255, 0.2), rgba(124, 156, 255, 0.03));
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    h1, h2, h3 { margin: 0; }
+
+    h1 {
+      font-size: clamp(1.6rem, 2.5vw, 2.4rem);
+      line-height: 1.2;
+    }
+
+    p { margin: 0; color: var(--muted); }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .badge {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 0.85rem;
+      color: #dbe4ff;
+      background: rgba(24, 35, 69, 0.7);
+    }
+
+    .grid {
+      margin-top: 24px;
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      background: var(--panel);
+    }
+
+    .card h3 { margin-bottom: 8px; }
+
+    .section-title {
+      margin: 28px 0 12px;
+      font-size: 1.2rem;
+      color: #e4ebff;
+    }
+
+    .builder {
+      margin-top: 24px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--panel);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .builder-head {
+      padding: 16px 20px;
+      background: var(--panel-2);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .builder-body {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 18px;
+      padding: 18px;
+    }
+
+    @media (max-width: 920px) {
+      .builder-body { grid-template-columns: 1fr; }
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field.full { grid-column: 1 / -1; }
+
+    label {
+      font-size: 0.9rem;
+      color: #dbe4ff;
+      font-weight: 600;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      background: #0e1630;
+      color: var(--text);
+      outline: none;
+      font: inherit;
+    }
+
+    textarea { min-height: 86px; resize: vertical; }
+
+    .hint {
+      font-size: 0.8rem;
+      color: #97a7d5;
+    }
+
+    .inline {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 10px;
+      background: #0e1630;
+    }
+
+    .mode-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .mode-item input { display: none; }
+
+    .mode-item span {
+      display: inline-block;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 7px 12px;
+      color: #dbe4ff;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .mode-item input:checked + span {
+      background: rgba(124, 156, 255, 0.22);
+      border-color: var(--brand);
+      color: #f5f8ff;
+    }
+
+    .command-box {
+      display: grid;
+      gap: 10px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #0c142c;
+      padding: 14px;
+    }
+
+    pre {
+      margin: 0;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: #f2f5ff;
+      font-size: 0.9rem;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, #2d448e, #24386f);
+      color: white;
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-weight: 600;
+    }
+
+    button.secondary {
+      background: #101a3a;
+    }
+
+    .output-preview {
+      margin-top: 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      background: #0f1733;
+    }
+
+    .vars {
+      margin-top: 20px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    th { background: var(--panel-2); color: #f2f5ff; }
+
+    tr:last-child td { border-bottom: 0; }
+
+    code {
+      background: rgba(124, 156, 255, 0.12);
+      border: 1px solid rgba(124, 156, 255, 0.35);
+      padding: 1px 6px;
+      border-radius: 8px;
+      color: #e7eeff;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.88rem;
+    }
+
+    .warn {
+      color: var(--danger);
+      font-size: 0.85rem;
+      min-height: 20px;
+    }
+
+    footer {
+      margin-top: 26px;
+      color: #8fa1d4;
+      font-size: 0.86rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <section class="hero">
+      <h1>Viral Content Generator UI</h1>
+      <p>
+        A front-end command builder and quick reference for photo prompts, video prompts,
+        and Gemini text-to-speech generation.
+      </p>
+      <div class="badge-row">
+        <span class="badge">Bun + TypeScript CLI</span>
+        <span class="badge">Gemini / OpenAI / Ollama</span>
+        <span class="badge">KlingAI Video</span>
+        <span class="badge">Gemini TTS (WAV)</span>
+      </div>
+    </section>
+
+    <section class="grid" aria-label="Core capabilities">
+      <article class="card">
+        <h3>Photo Mode</h3>
+        <p>Create social-ready image prompts. Use <code>--gen</code> to generate actual images with Gemini or Stability (via Ollama workflow).</p>
+      </article>
+      <article class="card">
+        <h3>Video Mode</h3>
+        <p>Generate TikTok-unique prompts and optionally render videos. Current CLI output media path is tracked per run.</p>
+      </article>
+      <article class="card">
+        <h3>TTS Mode</h3>
+        <p>Gemini-only speech synthesis with voice selection. Outputs <code>.wav</code> PCM 16-bit 24kHz mono files.</p>
+      </article>
+    </section>
+
+    <section class="builder" aria-label="Command Builder">
+      <div class="builder-head">
+        <h2>Interactive Command Builder</h2>
+      </div>
+
+      <div class="builder-body">
+        <form id="builderForm" class="form-grid" autocomplete="off">
+          <div class="field full">
+            <label>Mode</label>
+            <div class="mode-group">
+              <label class="mode-item"><input type="radio" name="mode" value="photo" checked /><span>Photo</span></label>
+              <label class="mode-item"><input type="radio" name="mode" value="video" /><span>Video</span></label>
+              <label class="mode-item"><input type="radio" name="mode" value="tts" /><span>TTS (Gemini)</span></label>
+            </div>
+          </div>
+
+          <div class="field full">
+            <label for="prompt">Prompt / Text</label>
+            <textarea id="prompt" placeholder="cozy coffee shop aesthetic">cozy coffee shop aesthetic</textarea>
+            <span class="hint" id="promptHint">Describe the idea/topic for prompt generation.</span>
+          </div>
+
+          <div class="field">
+            <label for="count">Count (-n)</label>
+            <input id="count" type="number" min="1" value="3" />
+          </div>
+
+          <div class="field">
+            <label for="provider">Provider</label>
+            <select id="provider">
+              <option value="gemini">gemini</option>
+              <option value="openai">openai</option>
+              <option value="ollama">ollama</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="model">Model (optional)</label>
+            <input id="model" type="text" placeholder="gemini-3.1-pro-preview" />
+          </div>
+
+          <div class="field" id="voiceWrap" hidden>
+            <label for="voice">TTS Voice</label>
+            <select id="voice">
+              <option>Aoede</option>
+              <option>Charon</option>
+              <option>Fenrir</option>
+              <option selected>Kore</option>
+              <option>Leda</option>
+              <option>Orus</option>
+              <option>Puck</option>
+              <option>Zephyr</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="outDir">Run Log Directory</label>
+            <input id="outDir" type="text" value="./runs" />
+          </div>
+
+          <div class="field full inline">
+            <label class="toggle">
+              <input id="withGen" type="checkbox" />
+              <span>Use <code>--gen</code> for media generation</span>
+            </label>
+          </div>
+        </form>
+
+        <section>
+          <div class="command-box">
+            <strong>Command Preview</strong>
+            <pre id="commandPreview">viral --photo --prompt "cozy coffee shop aesthetic" -n 3</pre>
+            <div class="btn-row">
+              <button type="button" id="copyBtn">Copy command</button>
+              <button type="button" id="resetBtn" class="secondary">Reset</button>
+            </div>
+            <div id="warning" class="warn"></div>
+          </div>
+
+          <div class="output-preview">
+            <strong>Expected Output Shape</strong>
+            <pre id="outputPreview">[
+  "prompt 1",
+  "prompt 2"
+]</pre>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <h2 class="section-title">Environment Variables</h2>
+    <section class="vars" aria-label="Environment Variables">
+      <table>
+        <thead>
+          <tr>
+            <th>Variable</th>
+            <th>Used For</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>GEMINI_API_KEY</code></td><td>Gemini prompts, image generation, and TTS.</td></tr>
+          <tr><td><code>GEMINI_MODEL</code></td><td>Prompt generation model default.</td></tr>
+          <tr><td><code>NANO_BANANA_MODEL</code></td><td>Image generation model.</td></tr>
+          <tr><td><code>GEMINI_TTS_MODEL</code></td><td>TTS model default (Gemini only).</td></tr>
+          <tr><td><code>OPENAI_API_KEY</code></td><td>OpenAI prompt generation.</td></tr>
+          <tr><td><code>OLLAMA_BASE_URL</code></td><td>Ollama local endpoint.</td></tr>
+          <tr><td><code>KLINGAI_API_KEY</code></td><td>KlingAI video generation.</td></tr>
+          <tr><td><code>KLINGAI_API_SECRET</code></td><td>KlingAI authentication secret.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <footer>
+      Built for quick onboarding and safer command composition for <code>viral-video-generator</code>.
+    </footer>
+  </main>
+
+  <script>
+    const form = document.getElementById("builderForm");
+    const commandPreview = document.getElementById("commandPreview");
+    const outputPreview = document.getElementById("outputPreview");
+    const warning = document.getElementById("warning");
+    const provider = document.getElementById("provider");
+    const prompt = document.getElementById("prompt");
+    const count = document.getElementById("count");
+    const model = document.getElementById("model");
+    const outDir = document.getElementById("outDir");
+    const withGen = document.getElementById("withGen");
+    const voiceWrap = document.getElementById("voiceWrap");
+    const voice = document.getElementById("voice");
+    const promptHint = document.getElementById("promptHint");
+
+    function getMode() {
+      const selected = form.querySelector("input[name='mode']:checked");
+      return selected ? selected.value : "photo";
+    }
+
+    function quoteValue(v) {
+      return `"${String(v).replace(/"/g, '\\"')}"`;
+    }
+
+    function refresh() {
+      const mode = getMode();
+      let providerValue = provider.value;
+      const promptValue = prompt.value.trim() || "your topic";
+      const countValue = Math.max(1, Number(count.value || 1));
+      const modelValue = model.value.trim();
+      const outDirValue = outDir.value.trim();
+      const voiceValue = voice.value;
+
+      warning.textContent = "";
+
+      if (mode === "tts") {
+        providerValue = "gemini";
+        provider.value = "gemini";
+        provider.disabled = true;
+        withGen.checked = false;
+        withGen.disabled = true;
+        voiceWrap.hidden = false;
+        promptHint.textContent = "Enter exact text that will be synthesized to speech.";
+      } else {
+        provider.disabled = false;
+        withGen.disabled = false;
+        voiceWrap.hidden = true;
+        promptHint.textContent = "Describe the idea/topic for prompt generation.";
+      }
+
+      if (mode !== "tts" && providerValue !== "gemini" && withGen.checked) {
+        warning.textContent = "Tip: media generation support depends on mode/provider integrations in the CLI.";
+      }
+
+      const parts = ["viral", `--${mode}`, "--prompt", quoteValue(promptValue), "-n", String(countValue)];
+
+      if (mode !== "tts" && providerValue !== "gemini") {
+        parts.push("--provider", providerValue);
+      }
+
+      if (modelValue) {
+        parts.push("--model", modelValue);
+      }
+
+      if (mode === "tts" && voiceValue) {
+        parts.push("--voice", voiceValue);
+      }
+
+      if (outDirValue && outDirValue !== "./runs") {
+        parts.push("--outDir", outDirValue);
+      }
+
+      if (withGen.checked && mode !== "tts") {
+        parts.push("--gen");
+      }
+
+      commandPreview.textContent = parts.join(" ");
+
+      if (mode === "tts") {
+        outputPreview.textContent = JSON.stringify({
+          media: ["./output/run-...-tts/speech-1.wav"],
+          ttsMeta: [{ voice: voiceValue, model: "gemini-3.1-flash-tts-preview", text: promptValue, audioPath: "./output/run-...-tts/speech-1.wav" }]
+        }, null, 2);
+      } else if (withGen.checked) {
+        outputPreview.textContent = JSON.stringify({
+          prompts: ["prompt 1", "prompt 2"],
+          media: ["./output/run-.../file-1.ext"]
+        }, null, 2);
+      } else {
+        outputPreview.textContent = JSON.stringify(["prompt 1", "prompt 2"], null, 2);
+      }
+    }
+
+    function setStatus(message, color) {
+      warning.style.color = color || "";
+      warning.textContent = message;
+    }
+
+    function fallbackCopyText(text) {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      ta.style.pointerEvents = "none";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      let copied = false;
+      try {
+        copied = document.execCommand("copy");
+      } catch {
+        copied = false;
+      }
+      document.body.removeChild(ta);
+      return copied;
+    }
+
+    async function copyCommand(text) {
+      if (!text) return false;
+      if (navigator.clipboard && window.isSecureContext) {
+        try {
+          await navigator.clipboard.writeText(text);
+          return true;
+        } catch {
+          // Fall through to legacy fallback
+        }
+      }
+      return fallbackCopyText(text);
+    }
+
+    form.addEventListener("input", refresh);
+    form.addEventListener("change", refresh);
+
+    document.getElementById("copyBtn").addEventListener("click", async () => {
+      const text = commandPreview.textContent || "";
+      const ok = await copyCommand(text);
+      if (ok) {
+        setStatus("Command copied to clipboard.", "#63e6be");
+        setTimeout(() => {
+          setStatus("");
+          refresh();
+        }, 1200);
+        return;
+      }
+
+      setStatus("Clipboard blocked by browser. Select the command text and copy manually.", "#ff8787");
+    });
+
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      prompt.value = "cozy coffee shop aesthetic";
+      count.value = "3";
+      provider.value = "gemini";
+      model.value = "";
+      voice.value = "Kore";
+      withGen.checked = false;
+      outDir.value = "./runs";
+      form.querySelector("input[name='mode'][value='photo']").checked = true;
+      refresh();
+    });
+
+    refresh();
+  </script>
+</body>
+</html>
+
