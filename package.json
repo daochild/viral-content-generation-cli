@@ -13,6 +13,7 @@
     "dev": "bun --console-depth 5 --watch ./src/index.ts",
     "start": "bun ./dist/index.js",
     "test": "bun test",
+    "video:enhance": "bash ./scripts/enhance-video.sh",
     "build:linux": "bun build --compile --bytecode --minify --sourcemap ./cli.ts --target=bun-linux-x64 --outfile=./release/viral-linux",
     "build:macos": "bun build --compile --bytecode --minify --sourcemap ./cli.ts --target=bun-darwin-arm64 --outfile=./release/viral-macos",
     "build:windows": "bun build --compile --bytecode --minify --sourcemap ./cli.ts --target=bun-windows-x64 --outfile=./release/viral",

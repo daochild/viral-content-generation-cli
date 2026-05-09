@@ -114,7 +114,21 @@ bun run build:all
 ## Documentation
 
 - Core docs live in `docs/gemini/`
+- FFmpeg post-processing guide: `research/ffmpeg-video-enhancement-guide.md`
 - UX/UI dashboard page: `ui/index.html`
+
+### Enhance generated videos with FFmpeg
+
+```bash
+bun run video:enhance -- --input ./output/run-example/video-1.mp4 --preset social
+```
+
+Available presets in `scripts/enhance-video.sh`:
+
+- `social`
+- `vertical`
+- `clean`
+- `stabilize`
 
 ### Run the UI page locally
 
