@@ -10,7 +10,17 @@ import { GeminiImageClient } from "../media/geminiImage";
 import { OllamaImageClient } from "../media/ollamaImage";
 import { KlingAIClient } from "../media/klingai";
 import { GeminiTtsClient, GEMINI_TTS_DEFAULT_MODEL, GEMINI_TTS_VOICES } from "../media/geminiTts";
-import type { RunRecord } from "../domain/types";
+import {
+  DEFAULT_VIDEO_ENHANCEMENT_CRF,
+  DEFAULT_VIDEO_ENHANCEMENT_PRESET,
+  DEFAULT_VIDEO_ENHANCEMENT_SPEED,
+  VIDEO_ENHANCEMENT_PRESETS,
+  VIDEO_ENHANCEMENT_SPEEDS,
+  enhanceVideos,
+  findRunVideoInputs,
+  type VideoEnhancementFailure,
+} from "../media/videoEnhancer";
+import type { RunRecord, VideoEnhancementPreset, VideoEnhancementSpeed } from "../domain/types";
 
 const RUNS_DIR = "./runs";
 const OUTPUT_DIR = "./output";
@@ -24,13 +34,21 @@ Usage:
   viral --video --prompt "topic" -n <count>    Generate video prompts (TikTok unique)
   viral --photo --prompt "topic" -n <count> --gen    Generate prompts AND images
   viral --video --prompt "topic" -n <count> --gen    Generate prompts AND videos
+  viral --video --prompt "topic" -n <count> --gen --enhance    Generate, then enhance videos with FFmpeg
   viral --tts --prompt "text to speak" -n <count>    Generate speech audio (Gemini only)
+  viral --enhanceRun <runId>    Enhance all video-*.mp4 files in ./output/<runId>
 
 Options:
   --photo           Generate photo prompts
   --video           Generate video prompts with TikTok uniqueness rules
   --tts             Generate text-to-speech audio files (Gemini only)
   --gen             Also generate actual media (images via Gemini, videos via KlingAI)
+  --enhance         After --video --gen, enhance generated videos with FFmpeg
+  --enhanceRun      Enhance every video-*.mp4 inside ./output/<runId>
+  --enhancePreset   FFmpeg preset: ${VIDEO_ENHANCEMENT_PRESETS.join(", ")} (default: ${DEFAULT_VIDEO_ENHANCEMENT_PRESET})
+  --enhanceCrf      FFmpeg CRF quality value (default: ${DEFAULT_VIDEO_ENHANCEMENT_CRF})
+  --enhanceSpeed    FFmpeg encoder speed: ${VIDEO_ENHANCEMENT_SPEEDS.join(", ")} (default: ${DEFAULT_VIDEO_ENHANCEMENT_SPEED})
+  --enhanceOverwrite  Overwrite existing *-enhanced.mp4 outputs
   --prompt, -p      Base topic/idea for generation (or exact text for --tts)
   -n                Number of prompts / audio files to generate (default: 5)
   --provider        LLM provider: gemini, openai, or ollama (default: gemini)
@@ -54,14 +72,19 @@ Environment variables:
   KLINGAI_MODE         Mode: std or pro (default: std)
   GEMINI_TTS_MODEL     Model for TTS (default: ${GEMINI_TTS_DEFAULT_MODEL})
 
+ FFmpeg enhancement requires:
+   ffmpeg               Available in PATH for --enhance / --enhanceRun
+
 Examples:
   viral --photo --prompt "cozy coffee shop aesthetic" -n 10
   viral --video --prompt "productivity tips" -n 5 --provider openai
   viral --photo --prompt "sunset beach" -n 3 --gen
   viral --video --prompt "cooking tutorial" -n 2 --gen
+  viral --video --prompt "cooking tutorial" -n 2 --gen --enhance --enhancePreset vertical
   viral --photo --prompt "nature scene" -n 5 --provider ollama --model llama3.2
   viral --tts --prompt "Welcome to our channel! Today we explore productivity." -n 1
   viral --tts --prompt "Top 5 tips to stay focused." -n 3 --voice Puck
+  viral --enhanceRun run-2026-05-09T12-30-00-000Z-video --enhancePreset social
 `);
 }
 
@@ -92,6 +115,14 @@ function getDefaultModel(provider: string): string {
   return "gemini-2.5-flash";
 }
 
+function isVideoEnhancementPreset(value: string): value is VideoEnhancementPreset {
+  return VIDEO_ENHANCEMENT_PRESETS.includes(value as VideoEnhancementPreset);
+}
+
+function isVideoEnhancementSpeed(value: string): value is VideoEnhancementSpeed {
+  return VIDEO_ENHANCEMENT_SPEEDS.includes(value as VideoEnhancementSpeed);
+}
+
 export async function runCli(argv: string[]) {
   const { values } = parseArgs({
     args: argv,
@@ -102,6 +133,12 @@ export async function runCli(argv: string[]) {
       video: { type: "boolean", default: false },
       tts: { type: "boolean", default: false },
       gen: { type: "boolean", default: false },
+      enhance: { type: "boolean", default: false },
+      enhanceRun: { type: "string" },
+      enhancePreset: { type: "string", default: DEFAULT_VIDEO_ENHANCEMENT_PRESET },
+      enhanceCrf: { type: "string", default: String(DEFAULT_VIDEO_ENHANCEMENT_CRF) },
+      enhanceSpeed: { type: "string", default: DEFAULT_VIDEO_ENHANCEMENT_SPEED },
+      enhanceOverwrite: { type: "boolean", default: false },
       prompt: { type: "string", short: "p" },
       n: { type: "string", default: "5" },
       provider: { type: "string", default: "gemini" },
@@ -126,6 +163,94 @@ export async function runCli(argv: string[]) {
   const isVideo = values.video;
   const isTts = values.tts;
   const shouldGenerate = values.gen;
+  const shouldEnhance = values.enhance;
+  const enhanceRunId = values.enhanceRun?.trim();
+  const outDir = values.outDir ?? RUNS_DIR;
+
+  const enhancePresetValue = values.enhancePreset ?? DEFAULT_VIDEO_ENHANCEMENT_PRESET;
+  if (!isVideoEnhancementPreset(enhancePresetValue)) {
+    console.error(`Error: --enhancePreset must be one of: ${VIDEO_ENHANCEMENT_PRESETS.join(", ")}`);
+    process.exitCode = 2;
+    return;
+  }
+
+  const enhanceCrf = parseInt(values.enhanceCrf ?? String(DEFAULT_VIDEO_ENHANCEMENT_CRF), 10);
+  if (!Number.isInteger(enhanceCrf) || enhanceCrf < 0) {
+    console.error("Error: --enhanceCrf must be a non-negative integer");
+    process.exitCode = 2;
+    return;
+  }
+
+  const enhanceSpeedValue = values.enhanceSpeed ?? DEFAULT_VIDEO_ENHANCEMENT_SPEED;
+  if (!isVideoEnhancementSpeed(enhanceSpeedValue)) {
+    console.error(`Error: --enhanceSpeed must be one of: ${VIDEO_ENHANCEMENT_SPEEDS.join(", ")}`);
+    process.exitCode = 2;
+    return;
+  }
+
+  const enhanceOptions = {
+    preset: enhancePresetValue,
+    crf: enhanceCrf,
+    speed: enhanceSpeedValue,
+    overwrite: values.enhanceOverwrite,
+  };
+
+  if (enhanceRunId) {
+    if (isPhoto || isVideo || isTts || shouldGenerate || values.prompt) {
+      console.error("Error: --enhanceRun cannot be combined with prompt generation flags");
+      process.exitCode = 2;
+      return;
+    }
+
+    const store = new FileJsonStore(outDir);
+
+    try {
+      const inputVideos = await findRunVideoInputs(enhanceRunId, OUTPUT_DIR);
+      if (inputVideos.length === 0) {
+        throw new Error(`No video-*.mp4 files found in ${OUTPUT_DIR}/${enhanceRunId}`);
+      }
+
+      console.error(
+        `[viral] Enhancing ${inputVideos.length} video(s) from run ${enhanceRunId} using FFmpeg (${enhanceOptions.preset}/${enhanceOptions.crf}/${enhanceOptions.speed})...`,
+      );
+
+      const enhancementResult = await enhanceVideos(inputVideos, enhanceOptions);
+      if (enhancementResult.results.length === 0) {
+        const firstFailure = enhancementResult.failures[0]?.error ?? "Unknown enhancement failure";
+        throw new Error(firstFailure);
+      }
+
+      const existingRun = await store.readRun<RunRecord>(enhanceRunId);
+      if (existingRun) {
+        existingRun.enhancedMedia = enhancementResult.results.map((item) => item.outputPath);
+        existingRun.enhancementMeta = enhancementResult.results;
+        const savedPath = await store.writeRun(enhanceRunId, existingRun);
+        console.error(`[viral] Updated run log: ${savedPath}`);
+      }
+
+      if (enhancementResult.failures.length > 0) {
+        console.error(`[viral] ${enhancementResult.failures.length} video(s) failed to enhance.`);
+      }
+
+      console.log(
+        JSON.stringify(
+          {
+            runId: enhanceRunId,
+            enhancedMedia: enhancementResult.results.map((item) => item.outputPath),
+            enhancementMeta: enhancementResult.results,
+            failures: enhancementResult.failures,
+          },
+          null,
+          2,
+        ),
+      );
+    } catch (error: any) {
+      console.error(`Error: ${error?.message ?? String(error)}`);
+      process.exitCode = 1;
+    }
+
+    return;
+  }
 
   if (!isPhoto && !isVideo && !isTts) {
     console.error("Error: Specify --photo, --video, or --tts");
@@ -137,6 +262,18 @@ export async function runCli(argv: string[]) {
   const modeCount = [isPhoto, isVideo, isTts].filter(Boolean).length;
   if (modeCount > 1) {
     console.error("Error: Cannot combine --photo, --video, and --tts");
+    process.exitCode = 2;
+    return;
+  }
+
+  if (shouldEnhance && !isVideo) {
+    console.error("Error: --enhance can only be used with --video");
+    process.exitCode = 2;
+    return;
+  }
+
+  if (shouldEnhance && !shouldGenerate) {
+    console.error("Error: --enhance requires --gen so there are videos to process");
     process.exitCode = 2;
     return;
   }
@@ -179,7 +316,6 @@ export async function runCli(argv: string[]) {
 
   const model = values.model ?? getDefaultModel(provider);
   const type = isPhoto ? "photo" : isVideo ? "video" : "tts";
-  const outDir = values.outDir ?? RUNS_DIR;
 
   const store = new FileJsonStore(outDir);
   const runId = makeRunId(type);
@@ -257,6 +393,8 @@ export async function runCli(argv: string[]) {
     });
 
     runRecord.output = { prompts: result.prompts };
+
+    let enhancementFailures: VideoEnhancementFailure[] = [];
 
     if (shouldGenerate) {
       const generatedMedia: string[] = [];
@@ -360,13 +498,37 @@ export async function runCli(argv: string[]) {
       }
 
       runRecord.generatedMedia = generatedMedia;
+
+      if (isVideo && shouldEnhance && generatedMedia.length > 0) {
+        console.error(
+          `[viral] Enhancing ${generatedMedia.length} generated video(s) with FFmpeg (${enhanceOptions.preset}/${enhanceOptions.crf}/${enhanceOptions.speed})...`,
+        );
+
+        const enhancementResult = await enhanceVideos(generatedMedia, enhanceOptions);
+        runRecord.enhancedMedia = enhancementResult.results.map((item) => item.outputPath);
+        runRecord.enhancementMeta = enhancementResult.results;
+        enhancementFailures = enhancementResult.failures;
+
+        for (const item of enhancementResult.results) {
+          console.error(`[viral] Enhanced video saved: ${item.outputPath}`);
+        }
+
+        for (const failure of enhancementFailures) {
+          console.error(`[viral] Failed to enhance ${failure.inputPath}: ${failure.error}`);
+        }
+      }
     }
 
     const savedPath = await store.writeRun(runId, runRecord);
     console.error(`[viral] Run saved: ${savedPath}`);
 
     const output = shouldGenerate 
-      ? { prompts: result.prompts, media: runRecord.generatedMedia }
+      ? {
+          prompts: result.prompts,
+          media: runRecord.generatedMedia,
+          ...(runRecord.enhancedMedia ? { enhancedMedia: runRecord.enhancedMedia } : {}),
+          ...(enhancementFailures.length > 0 ? { enhancementFailures } : {}),
+        }
       : result.prompts;
     console.log(JSON.stringify(output, null, 2));
   } catch (error: any) {

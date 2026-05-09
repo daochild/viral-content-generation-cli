@@ -23,6 +23,11 @@ Use the companion script:
 
 - `scripts/enhance-video.sh`
 
+The CLI now also supports enhancement directly:
+
+- `bun run cli.ts --video --prompt "topic" -n 2 --gen --enhance`
+- `bun run cli.ts --enhanceRun <runId>`
+
 ---
 
 ## Requirements
@@ -42,6 +47,20 @@ ffprobe -version
 ---
 
 ## Quick start
+
+Enhance newly generated videos directly from the CLI:
+
+```bash
+bun run cli.ts --video --prompt "cooking tutorial" -n 2 --gen --enhance --enhancePreset social
+```
+
+Enhance all generated videos for an existing run ID:
+
+```bash
+bun run cli.ts --enhanceRun run-2026-05-09T12-30-00-000Z-video --enhancePreset vertical
+```
+
+Or use the standalone script for a single file:
 
 Basic enhancement with automatic output name:
 

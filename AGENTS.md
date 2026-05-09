@@ -14,6 +14,7 @@ Welcome! If you are an AI coding assistant working in this repository, follow th
 ## ⚙️ Workflows & Commands
 - **Run Locally**: `bun run cli.ts --photo --prompt "topic" -n 5`
 - **Run with Generation**: Add `--gen` to also generate images/videos.
+- **FFmpeg Enhancement**: For generated videos, add `--enhance` after `--video --gen` to create `*-enhanced.mp4` outputs, or use `bun run cli.ts --enhanceRun <runId>` to batch-enhance every `video-*.mp4` in `./output/<runId>`. Presets are implemented in `src/media/videoEnhancer.ts` and mirrored by `scripts/enhance-video.sh`.
 - **TTS Mode**: `bun run cli.ts --tts --prompt "text to speak" -n 1 --voice Kore` — Gemini-only. Uses `gemini-2.5-flash-preview-tts` (override via `GEMINI_TTS_MODEL`). Outputs `.wav` files (PCM 16-bit 24 kHz mono) to `./output/<runId>/speech-N.wav`. Available voices: `Aoede`, `Charon`, `Fenrir`, `Kore`, `Leda`, `Orus`, `Puck`, `Zephyr`.
 - **Video Capabilities**: The Gemini client natively supports Video generation with Veo 3.1, including advanced features (interpolation, extension, reference images). Check `src/llm/types.ts` and `src/llm/gemini.ts` for interfaces and polling usage.
 - **Test**: `bun test` runs E2E tests covering real API calls if `.env` keys exist.

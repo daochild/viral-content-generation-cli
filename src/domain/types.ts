@@ -73,6 +73,43 @@ export interface TtsGenerationMeta {
 }
 
 /**
+ * FFmpeg enhancement presets for generated videos.
+ */
+export type VideoEnhancementPreset = "social" | "vertical" | "clean" | "stabilize";
+
+/**
+ * FFmpeg encoder speed presets used by the enhancement pipeline.
+ */
+export type VideoEnhancementSpeed =
+  | "ultrafast"
+  | "superfast"
+  | "veryfast"
+  | "faster"
+  | "fast"
+  | "medium"
+  | "slow"
+  | "slower"
+  | "veryslow";
+
+/**
+ * Video enhancement metadata written after FFmpeg post-processing.
+ */
+export interface VideoEnhancementMeta {
+  /** Original generated video path */
+  inputPath: string;
+  /** Enhanced output video path */
+  outputPath: string;
+  /** Enhancement preset used */
+  preset: VideoEnhancementPreset;
+  /** CRF value used during encoding */
+  crf: number;
+  /** Encoder speed preset */
+  speed: VideoEnhancementSpeed;
+  /** When the enhanced file was created */
+  createdAt: string;
+}
+
+/**
  * Run record for storing generation results.
  */
 export interface RunRecord {
@@ -97,11 +134,15 @@ export interface RunRecord {
   };
   /** Paths to generated media files (when --gen flag is used) */
   generatedMedia?: string[];
+  /** Paths to enhanced media files (when --enhance is used for videos) */
+  enhancedMedia?: string[];
   /** Video generation metadata (when type is video and --gen flag is used) */
   videoMeta?: VideoGenerationMeta[];
   /** Image generation metadata (when type is photo and --gen flag is used) */
   imageMeta?: ImageGenerationMeta[];
   /** TTS generation metadata (when type is tts) */
   ttsMeta?: TtsGenerationMeta[];
+  /** Video enhancement metadata (when FFmpeg enhancement is used) */
+  enhancementMeta?: VideoEnhancementMeta[];
   error?: string;
 }

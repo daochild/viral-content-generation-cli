@@ -1,12 +1,28 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 export interface JsonStore {
   writeRun(runId: string, data: unknown): Promise<string>;
+  readRun<T>(runId: string): Promise<T | undefined>;
 }
 
 export class FileJsonStore implements JsonStore {
   constructor(private readonly dir: string) {}
+
+  async readRun<T>(runId: string): Promise<T | undefined> {
+    const file = join(this.dir, `${runId}.json`);
+
+    try {
+      const content = await readFile(file, "utf8");
+      return JSON.parse(content) as T;
+    } catch (error: any) {
+      if (error?.code === "ENOENT") {
+        return undefined;
+      }
+
+      throw error;
+    }
+  }
 
   async writeRun(runId: string, data: unknown): Promise<string> {
     await mkdir(this.dir, { recursive: true });
