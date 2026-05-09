@@ -3,6 +3,7 @@
 Welcome! If you are an AI coding assistant working in this repository, follow these guidelines to maximize your productivity.
 
 ## 🏗️ Architecture & Major Components
+- **`docs/`**: Documentation files providing additional context (e.g., API references, usage guides).
 - **`src/cli/index.ts`**: The main entrypoint. It parses CLI arguments (`--photo`, `--video`, `--gen`, etc.), initializes providers, and sequences prompts and media generation.
 - **`src/domain/`**: Houses domain-specific types and interfaces used across the codebase (e.g., `types.ts`).
 - **`src/llm/`**: Holds adapters for LLM providers (Gemini, OpenAI, Ollama). They implement the `LLMClient` interface defined in `src/llm/types.ts`.
