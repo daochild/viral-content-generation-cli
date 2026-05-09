@@ -4,6 +4,7 @@ Welcome! If you are an AI coding assistant working in this repository, follow th
 
 ## 🏗️ Architecture & Major Components
 - **`src/cli/index.ts`**: The main entrypoint. It parses CLI arguments (`--photo`, `--video`, `--gen`, etc.), initializes providers, and sequences prompts and media generation.
+- **`src/domain/`**: Houses domain-specific types and interfaces used across the codebase (e.g., `types.ts`).
 - **`src/llm/`**: Holds adapters for LLM providers (Gemini, OpenAI, Ollama). They implement the `LLMClient` interface defined in `src/llm/types.ts`.
 - **`src/media/`**: Houses media generation/downloading adapters (Gemini Image, Ollama + Stability, KlingAI for Video).
 - **`src/generator/prompts.ts`**: Contains the core logic and system prompts for generating Photo/Video (TikTok specific) prompts via the LLM clients. Output format must always be parsed securely as providers might wrap JSON in markdown blocks.
@@ -14,9 +15,10 @@ Welcome! If you are an AI coding assistant working in this repository, follow th
 - **Run with Generation**: Add `--gen` to also generate images/videos.
 - **Video Capabilities**: The Gemini client natively supports Video generation with Veo 3.1, including advanced features (interpolation, extension, reference images). Check `src/llm/types.ts` and `src/llm/gemini.ts` for interfaces and polling usage.
 - **Test**: `bun test` runs E2E tests covering real API calls if `.env` keys exist.
-- **Build**: `bun run build:all`
+- **Build**: `bun run build:all` (outputs binaries to `./release/`)
 
 ## 🧩 Project-Specific Conventions
+- **Code Quality**: All code should be written in English. Follow best practices for code quality and documentation. Ensure code is modular and reusable. Include comments to explain complex logic. Use consistent naming conventions for variables and functions.
 - **Stack**: Purely `bun.js` and `TypeScript`.
 - **Data security**: **Do not hardcode API Keys/tokens**. Everything sensitive MUST use environment variables (`GEMINI_API_KEY`, `OPENAI_API_KEY`, `KLINGAI_API_KEY`, etc.).
 - **Cross-platform Paths**: Only use forward slash (`/`) in path manipulation, even on Windows. Do not use `.replaceAll('\\', '/')`, avoid `\` altogether.
