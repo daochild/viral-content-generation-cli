@@ -2,7 +2,7 @@
  * Generated prompt types.
  */
 
-export type PromptType = "photo" | "video";
+export type PromptType = "photo" | "video" | "tts";
 
 export interface GeneratedPrompt {
   type: PromptType;
@@ -59,6 +59,20 @@ export interface ImageGenerationMeta {
 }
 
 /**
+ * TTS generation metadata from Gemini TTS.
+ */
+export interface TtsGenerationMeta {
+  /** Voice name used (e.g., "Kore", "Puck") */
+  voice: string;
+  /** Model used for TTS generation */
+  model: string;
+  /** Original text converted to speech */
+  text: string;
+  /** Path to saved .wav file */
+  audioPath: string;
+}
+
+/**
  * Run record for storing generation results.
  */
 export interface RunRecord {
@@ -69,10 +83,14 @@ export interface RunRecord {
   input: {
     basePrompt: string;
     count: number;
+    /** For TTS mode: the raw text to synthesize (overrides prompts) */
+    ttsText?: string;
   };
   config: {
     provider: string;
     model: string;
+    /** For TTS mode: the voice used */
+    voice?: string;
   };
   output?: {
     prompts: string[];
@@ -83,5 +101,7 @@ export interface RunRecord {
   videoMeta?: VideoGenerationMeta[];
   /** Image generation metadata (when type is photo and --gen flag is used) */
   imageMeta?: ImageGenerationMeta[];
+  /** TTS generation metadata (when type is tts) */
+  ttsMeta?: TtsGenerationMeta[];
   error?: string;
 }

@@ -197,7 +197,7 @@ export async function downloadVideosFromTask(
   const results: DownloadResult[] = [];
 
   for (let i = 0; i < videos.length; i++) {
-    const video = videos[i];
+    const video = videos[i]!;
     try {
       // Add index suffix if multiple videos
       const indexSuffix = videos.length > 1 ? `_${i + 1}` : "";

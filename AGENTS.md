@@ -7,13 +7,14 @@ Welcome! If you are an AI coding assistant working in this repository, follow th
 - **`src/cli/index.ts`**: The main entrypoint. It parses CLI arguments (`--photo`, `--video`, `--gen`, etc.), initializes providers, and sequences prompts and media generation.
 - **`src/domain/`**: Houses domain-specific types and interfaces used across the codebase (e.g., `types.ts`).
 - **`src/llm/`**: Holds adapters for LLM providers (Gemini, OpenAI, Ollama). They implement the `LLMClient` interface defined in `src/llm/types.ts`.
-- **`src/media/`**: Houses media generation/downloading adapters (Gemini Image, Ollama + Stability, KlingAI for Video).
+- **`src/media/`**: Houses media generation/downloading adapters (Gemini Image, Ollama + Stability, KlingAI for Video, Gemini TTS).
 - **`src/generator/prompts.ts`**: Contains the core logic and system prompts for generating Photo/Video (TikTok specific) prompts via the LLM clients. Output format must always be parsed securely as providers might wrap JSON in markdown blocks.
 - **`src/database/`**: Simple file-based stores (like `jsonStore.ts`) to track runs inside the `--outDir` (default `./runs`).
 
 ## ⚙️ Workflows & Commands
 - **Run Locally**: `bun run cli.ts --photo --prompt "topic" -n 5`
 - **Run with Generation**: Add `--gen` to also generate images/videos.
+- **TTS Mode**: `bun run cli.ts --tts --prompt "text to speak" -n 1 --voice Kore` — Gemini-only. Uses `gemini-2.5-flash-preview-tts` (override via `GEMINI_TTS_MODEL`). Outputs `.wav` files (PCM 16-bit 24 kHz mono) to `./output/<runId>/speech-N.wav`. Available voices: `Aoede`, `Charon`, `Fenrir`, `Kore`, `Leda`, `Orus`, `Puck`, `Zephyr`.
 - **Video Capabilities**: The Gemini client natively supports Video generation with Veo 3.1, including advanced features (interpolation, extension, reference images). Check `src/llm/types.ts` and `src/llm/gemini.ts` for interfaces and polling usage.
 - **Test**: `bun test` runs E2E tests covering real API calls if `.env` keys exist.
 - **Build**: `bun run build:all` (outputs binaries to `./release/`)

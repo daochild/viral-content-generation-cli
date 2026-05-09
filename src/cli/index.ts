@@ -9,6 +9,7 @@ import { FileJsonStore, makeRunId } from "../database/jsonStore";
 import { GeminiImageClient } from "../media/geminiImage";
 import { OllamaImageClient } from "../media/ollamaImage";
 import { KlingAIClient } from "../media/klingai";
+import { GeminiTtsClient, GEMINI_TTS_DEFAULT_MODEL, GEMINI_TTS_VOICES } from "../media/geminiTts";
 import type { RunRecord } from "../domain/types";
 
 const RUNS_DIR = "./runs";
@@ -23,21 +24,25 @@ Usage:
   viral --video --prompt "topic" -n <count>    Generate video prompts (TikTok unique)
   viral --photo --prompt "topic" -n <count> --gen    Generate prompts AND images
   viral --video --prompt "topic" -n <count> --gen    Generate prompts AND videos
+  viral --tts --prompt "text to speak" -n <count>    Generate speech audio (Gemini only)
 
 Options:
   --photo           Generate photo prompts
   --video           Generate video prompts with TikTok uniqueness rules
+  --tts             Generate text-to-speech audio files (Gemini only)
   --gen             Also generate actual media (images via Gemini, videos via KlingAI)
-  --prompt, -p      Base topic/idea for generation
-  -n                Number of prompts to generate (default: 5)
+  --prompt, -p      Base topic/idea for generation (or exact text for --tts)
+  -n                Number of prompts / audio files to generate (default: 5)
   --provider        LLM provider: gemini, openai, or ollama (default: gemini)
   --model           Model name for prompts (default: gemini-2.5-flash)
+  --voice           TTS voice name for --tts mode (default: Kore)
+                    Available: ${GEMINI_TTS_VOICES.join(", ")}
   --outDir          Output directory for run logs (default: ./runs)
   --help, -h        Show this help message
   --version, -v     Show version
 
 Environment variables:
-  GEMINI_API_KEY       API key for Gemini (prompts and images)
+  GEMINI_API_KEY       API key for Gemini (prompts, images, and TTS)
   OPENAI_API_KEY       API key for OpenAI (prompts only)
   OLLAMA_BASE_URL      Base URL for Ollama server (default: http://localhost:11434)
   STABILITY_API_KEY    API key for Stability AI (required for Ollama image generation)
@@ -47,6 +52,7 @@ Environment variables:
   KLINGAI_API_SECRET   API secret for KlingAI
   KLINGAI_MODEL        Model for video: kling-v1-6, kling-v2-master, etc. (default: kling-v1-6)
   KLINGAI_MODE         Mode: std or pro (default: std)
+  GEMINI_TTS_MODEL     Model for TTS (default: ${GEMINI_TTS_DEFAULT_MODEL})
 
 Examples:
   viral --photo --prompt "cozy coffee shop aesthetic" -n 10
@@ -54,6 +60,8 @@ Examples:
   viral --photo --prompt "sunset beach" -n 3 --gen
   viral --video --prompt "cooking tutorial" -n 2 --gen
   viral --photo --prompt "nature scene" -n 5 --provider ollama --model llama3.2
+  viral --tts --prompt "Welcome to our channel! Today we explore productivity." -n 1
+  viral --tts --prompt "Top 5 tips to stay focused." -n 3 --voice Puck
 `);
 }
 
@@ -92,11 +100,13 @@ export async function runCli(argv: string[]) {
       version: { type: "boolean", short: "v", default: false },
       photo: { type: "boolean", default: false },
       video: { type: "boolean", default: false },
+      tts: { type: "boolean", default: false },
       gen: { type: "boolean", default: false },
       prompt: { type: "string", short: "p" },
       n: { type: "string", default: "5" },
       provider: { type: "string", default: "gemini" },
       model: { type: "string" },
+      voice: { type: "string" },
       outDir: { type: "string", default: RUNS_DIR },
     },
     allowPositionals: true,
@@ -114,17 +124,19 @@ export async function runCli(argv: string[]) {
 
   const isPhoto = values.photo;
   const isVideo = values.video;
+  const isTts = values.tts;
   const shouldGenerate = values.gen;
 
-  if (!isPhoto && !isVideo) {
-    console.error("Error: Specify --photo or --video");
+  if (!isPhoto && !isVideo && !isTts) {
+    console.error("Error: Specify --photo, --video, or --tts");
     printHelp();
     process.exitCode = 2;
     return;
   }
 
-  if (isPhoto && isVideo) {
-    console.error("Error: Cannot use both --photo and --video");
+  const modeCount = [isPhoto, isVideo, isTts].filter(Boolean).length;
+  if (modeCount > 1) {
+    console.error("Error: Cannot combine --photo, --video, and --tts");
     process.exitCode = 2;
     return;
   }
@@ -150,8 +162,23 @@ export async function runCli(argv: string[]) {
     return;
   }
 
+  // TTS is Gemini-only
+  if (isTts && provider !== "gemini") {
+    console.error("Error: --tts mode only supports --provider gemini");
+    process.exitCode = 2;
+    return;
+  }
+
+  // Validate voice if provided
+  const voiceArg = values.voice;
+  if (voiceArg && !GEMINI_TTS_VOICES.includes(voiceArg as any)) {
+    console.error(`Error: --voice must be one of: ${GEMINI_TTS_VOICES.join(", ")}`);
+    process.exitCode = 2;
+    return;
+  }
+
   const model = values.model ?? getDefaultModel(provider);
-  const type = isPhoto ? "photo" : "video";
+  const type = isPhoto ? "photo" : isVideo ? "video" : "tts";
   const outDir = values.outDir ?? RUNS_DIR;
 
   const store = new FileJsonStore(outDir);
@@ -165,20 +192,65 @@ export async function runCli(argv: string[]) {
     input: {
       basePrompt: prompt,
       count,
+      ...(isTts ? { ttsText: prompt } : {}),
     },
     config: {
       provider,
       model,
+      ...(isTts ? { voice: voiceArg ?? "Kore" } : {}),
     },
   };
 
   console.error(`[viral] Generating ${count} ${type} prompt(s) using ${provider}/${model}...`);
 
   try {
+    // TTS mode: directly synthesize speech without LLM prompt generation
+    if (isTts) {
+      const geminiApiKey = process.env.GEMINI_API_KEY;
+      if (!geminiApiKey) {
+        throw new Error("GEMINI_API_KEY environment variable is required for TTS generation");
+      }
+
+      const ttsModel = process.env.GEMINI_TTS_MODEL ?? GEMINI_TTS_DEFAULT_MODEL;
+      const voice = (voiceArg ?? "Kore") as any;
+      const ttsClient = new GeminiTtsClient({ apiKey: geminiApiKey });
+      const outputBaseDir = join(OUTPUT_DIR, runId);
+      const generatedMedia: string[] = [];
+      const ttsMeta: import("../domain/types").TtsGenerationMeta[] = [];
+
+      console.error(`[viral] Generating ${count} speech file(s) using ${ttsModel} (voice: ${voice})...`);
+
+      for (let i = 0; i < count; i++) {
+        const outputPath = join(outputBaseDir, `speech-${i + 1}.wav`);
+        console.error(`[viral] Generating speech ${i + 1}/${count}...`);
+        try {
+          const result = await ttsClient.generate({
+            text: prompt,
+            model: ttsModel,
+            voice,
+            outputPath,
+          });
+          generatedMedia.push(result.audioPath);
+          ttsMeta.push({ voice: result.voice, model: result.model, text: prompt, audioPath: result.audioPath });
+          console.error(`[viral] Audio saved: ${result.audioPath}`);
+        } catch (err: any) {
+          console.error(`[viral] Failed to generate speech ${i + 1}: ${err?.message ?? err}`);
+        }
+      }
+
+      runRecord.generatedMedia = generatedMedia;
+      runRecord.ttsMeta = ttsMeta;
+
+      const savedPath = await store.writeRun(runId, runRecord);
+      console.error(`[viral] Run saved: ${savedPath}`);
+      console.log(JSON.stringify({ media: generatedMedia, ttsMeta }, null, 2));
+      return;
+    }
+
     const client = createLLMClient(provider);
     
     const result = await generatePrompts(client, {
-      type,
+      type: type as "photo" | "video",
       basePrompt: prompt,
       count,
       model,

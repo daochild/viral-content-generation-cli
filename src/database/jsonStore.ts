@@ -18,9 +18,9 @@ export class FileJsonStore implements JsonStore {
 
 /**
  * Generate a run ID with timestamp and type suffix.
- * Format: run-YYYY-MM-DDTHH-mm-ss-mmmZ-{photo|video}
+ * Format: run-YYYY-MM-DDTHH-mm-ss-mmmZ-{photo|video|tts}
  */
-export function makeRunId(type: "photo" | "video"): string {
+export function makeRunId(type: "photo" | "video" | "tts"): string {
   const ts = new Date().toISOString().replace(/[:.]/g, "-");
   return `run-${ts}-${type}`;
 }
